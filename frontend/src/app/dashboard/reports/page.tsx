@@ -45,6 +45,7 @@ import { useInventory } from "@/hooks/features/useInventory";
 import { useOperation } from "@/hooks/features/useOperation";
 import Papa from "papaparse";
 import { DateRange } from "react-day-picker";
+import { MultiStepLoader as Loader } from "@/components/ui/aceternity/multi-step-loader";
 
 interface SalesReportItem {
   Order_Number: string;
@@ -74,6 +75,22 @@ interface FinancialReportItem {
 type ReportType = "sales" | "inventory" | "financial";
 type TimeframeType = "all" | "today" | "week" | "month" | "year" | "custom";
 
+
+const loadingStates = [
+  {
+    text: "Preparing report data",
+  },
+  {
+    text: "Creating Google Sheet",
+  },
+  {
+    text: "Adding data to sheet",
+  },
+  {
+    text: "Finalizing sheet",
+  },
+];
+
 const ReportsPage = () => {
   const [reportType, setReportType] = useState<ReportType>("sales");
   const [timeframe, setTimeframe] = useState<TimeframeType>("all");
@@ -85,6 +102,8 @@ const ReportsPage = () => {
   const { data: orders } = useTransaction({});
   const { data: inventory } = useInventory({ endpoint: "items" });
   const { data: expenses } = useOperation({ endpoint: "expenses" });
+
+  const [loading, setLoading] = useState(false);
 
   const getDateRange = () => {
     const now = new Date();
@@ -196,6 +215,8 @@ const ReportsPage = () => {
 
   const openInGoogleSheets = async () => {
     try {
+      setLoading(true);
+      
       const data = getReportData();
       const headers = Object.keys(data[0] || {});
 
@@ -221,15 +242,11 @@ const ReportsPage = () => {
       if (error) throw new Error(error);
 
       window.open(url, "_blank");
-
-      // Show a message to the user
-      alert(
-        "A new Google Sheet has been created. Please request access to view the sheet."
-      );
     } catch (error) {
       console.error("Error:", error);
-      // Show an error message to the user
       alert("Failed to create the Google Sheet. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -465,6 +482,12 @@ const ReportsPage = () => {
           </Card>
         </div>
       </div>
+      <Loader 
+        loadingStates={loadingStates}
+        loading={loading}
+        duration={2000}
+        loop={false}
+      />
     </div>
   );
 };
